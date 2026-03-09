@@ -1,52 +1,51 @@
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'غير مسموح بهذا النوع من الطلبات' });
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
     
     const { url } = req.body;
-    if (!url) return res.status(400).json({ error: 'فين الرابط يا لوسيفر؟' });
+    const API_KEY = process.env.RAPIDAPI_KEY;
 
-    // بنسحب المفتاح من خزنة فيرسيل بأمان
-    const API_KEY = process.env.RAPIDAPI_KEY; 
-    const API_HOST = 'social-download-all-in-one.p.rapidapi.com';
-
+    // فحص: هل فيرسيل شايف المفتاح أصلاً؟
     if (!API_KEY) {
-        return res.status(500).json({ error: "خطأ: لم يتم إعداد مفتاح API في الخادم." });
+        return res.status(400).json({ error: "السيرفر مش لاقي الـ API_KEY! اتأكد إنك حطيته في Vercel وعملت Redeploy." });
     }
 
-    // إعدادات الطلب زي ما هي موجودة في الصورة بتاعتك بالظبط
-    const options = {
-        method: 'POST',
-        headers: {
-            'content-type': 'application/json',
-            'x-rapidapi-host': API_HOST,
-            'x-rapidapi-key': API_KEY
-        },
-        body: JSON.stringify({ url: url })
-    };
-
     try {
-        const apiRes = await fetch('https://social-download-all-in-one.p.rapidapi.com/v1/social/autolink', options);
+        const apiRes = await fetch('https://social-download-all-in-one.p.rapidapi.com/v1/social/autolink', {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+                'x-rapidapi-host': 'social-download-all-in-one.p.rapidapi.com',
+                'x-rapidapi-key': API_KEY
+            },
+            body: JSON.stringify({ url: url })
+        });
+
         const data = await apiRes.json();
 
-        // الـ API ده عادة بيرجع البيانات جوه مصفوفة اسمها medias
-        if (data && (data.medias || data.links || data.url)) {
-            // بنوحد شكل الرد عشان الواجهة تفهمه بسهولة
-            const medias = data.medias || data.links || [{ url: data.url, quality: 'عالية' }];
-            
-            return res.status(200).json({
-                title: data.title || "تم الاستخراج بواسطة لوسيفر 😈",
-                thumbnail: data.thumbnail || data.cover || "https://placehold.co/600x400/151515/ff003c?text=Lucifer+Tools",
-                links: medias.map(media => ({
-                    quality: media.quality || media.type || 'تحميل',
-                    url: media.url || media.link,
-                    extension: media.extension || 'mp4'
-                }))
-            });
+        // حالة 1: الـ API شغال بس رفض الطلب (ممكن الرصيد خلص أو الرابط غلط)
+        if (!apiRes.ok) {
+            return res.status(400).json({ error: `الـ API رفض الطلب وقال: ${JSON.stringify(data)}` });
         }
-        
-        return res.status(400).json({ error: "عذراً، الرابط محمي أو غير مدعوم." });
+
+        // حالة 2: الـ API نجح بس مفيش روابط رجعت
+        if (!data.medias && !data.links && !data.url) {
+            return res.status(400).json({ error: `البيانات رجعت فاضية من الـ API: ${JSON.stringify(data)}` });
+        }
+
+        // حالة 3: نجاح! ننسق البيانات
+        const medias = data.medias || data.links || [{ url: data.url, quality: 'عالية' }];
+        return res.status(200).json({
+            title: data.title || "تم الاستخراج 😈",
+            thumbnail: data.thumbnail || data.cover || "https://placehold.co/600",
+            links: medias.map(m => ({
+                quality: m.quality || m.type || 'تحميل',
+                url: m.url || m.link,
+                extension: m.extension || 'mp4'
+            }))
+        });
 
     } catch (error) {
-        console.error("Server Error:", error);
-        res.status(500).json({ error: "الخوادم ترفض الاتصال حالياً." });
+        // لو السيرفر نفسه وقع
+        return res.status(500).json({ error: `مشكلة في كود السيرفر نفسه: ${error.message}` });
     }
 }
