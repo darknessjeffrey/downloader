@@ -1,0 +1,11 @@
+{
+    "name": "lucifer-downloader",
+    "version": "1.0.0",
+    "main": "api/download.js",
+    "dependencies": {
+      "node-fetch": "^3.3.0"
+    },
+    "engines": {
+      "node": "18.x"
+    }
+  }

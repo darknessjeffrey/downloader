@@ -1,0 +1,92 @@
+:root {
+    --lucifer-red: #ff003c;
+    --dark-bg: #050505;
+    --card-bg: #111;
+}
+
+body {
+    background: var(--dark-bg);
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+}
+
+.container { width: 95%; max-width: 800px; padding: 40px 10px; text-align: center; }
+
+.lucifer-brand { color: var(--lucifer-red); letter-spacing: 3px; font-weight: bold; }
+
+/* تصميم التابات */
+.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    background: #222;
+    border: 1px solid #333;
+    color: #888;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.tab-btn.active, .tab-btn:hover {
+    background: var(--lucifer-red);
+    color: white;
+    border-color: var(--lucifer-red);
+    box-shadow: 0 0 15px rgba(255, 0, 60, 0.4);
+}
+
+.input-section {
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 12px;
+    display: flex;
+    gap: 10px;
+}
+
+input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    outline: none;
+    font-size: 1rem;
+}
+
+#mainBtn {
+    background: var(--lucifer-red);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.result-box { background: var(--card-bg); margin-top: 20px; padding: 20px; border-radius: 15px; }
+
+.links-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.dl-button {
+    background: #333;
+    color: white;
+    padding: 15px;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid #444;
+}
+
+.dl-button:hover { background: var(--lucifer-red); }

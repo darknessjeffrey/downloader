@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucifer Multi-Downloader | مجموعة أدوات لوسيفر</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="lucifer-brand">LUCIFER'S ELITE TOOLS</div>
+            <h1>المحمل الشامل</h1>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-platform="all"><i class="fas fa-globe"></i> الكل</button>
+            <button class="tab-btn" data-platform="tiktok"><i class="fab fa-tiktok"></i> تيك توك</button>
+            <button class="tab-btn" data-platform="instagram"><i class="fab fa-instagram"></i> انستجرام</button>
+            <button class="tab-btn" data-platform="youtube"><i class="fab fa-youtube"></i> يوتيوب</button>
+            <button class="tab-btn" data-platform="facebook"><i class="fab fa-facebook"></i> فيسبوك</button>
+        </div>
+
+        <div class="input-section">
+            <input type="text" id="urlInput" placeholder="ضع الرابط هنا (فيديو، ريلز، استوري، هايلايت)...">
+            <button id="mainBtn">بدء الاستخراج</button>
+        </div>
+
+        <div id="loader" class="hidden">جاري اختراق السيرفرات وجلب الملفات... ⚡</div>
+
+        <div id="resultBox" class="hidden">
+            <div class="result-header">
+                <img id="resThumb" src="" alt="">
+                <h4 id="resTitle"></h4>
+            </div>
+            <div id="downloadLinks" class="links-grid">
+                </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
