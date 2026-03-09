@@ -1,41 +1,25 @@
-// 1. تعريف العناصر
 const tabs = document.querySelectorAll('.tab-btn');
-const urlInput = document.getElementById('urlInput');
-const mainBtn = document.getElementById('mainBtn');
-const loader = document.getElementById('loader');
-const resultBox = document.getElementById('resultBox');
+const input = document.getElementById('urlInput');
+const btn = document.getElementById('downloadBtn');
+const status = document.getElementById('status');
+const results = document.getElementById('results');
 
-// 2. منطق تبديل الأقسام (Tabs)
+// تشغيل التابات
 tabs.forEach(tab => {
     tab.addEventListener('click', () => {
-        // إزالة اللون الأحمر من كل الزراير
         tabs.forEach(t => t.classList.remove('active'));
-        // إضافة اللون الأحمر للزرار اللي ضغطت عليه
         tab.classList.add('active');
-
-        // تغيير الكلام اللي جوه مربع النص حسب المنصة
         const platform = tab.getAttribute('data-platform');
-        updatePlaceholder(platform);
+        input.placeholder = platform === 'all' ? "ضع الرابط هنا..." : `ضع رابط ${platform} هنا...`;
     });
 });
 
-function updatePlaceholder(platform) {
-    switch(platform) {
-        case 'tiktok': urlInput.placeholder = "حط رابط فيديو تيك توك هنا..."; break;
-        case 'instagram': urlInput.placeholder = "حط رابط ريلز أو ستوري انستجرام..."; break;
-        case 'youtube': urlInput.placeholder = "حط رابط فيديو يوتيوب..."; break;
-        case 'facebook': urlInput.placeholder = "حط رابط فيديو أو ريلز فيسبوك..."; break;
-        default: urlInput.placeholder = "ضع الرابط هنا (أي منصة)...";
-    }
-}
+btn.addEventListener('click', async () => {
+    const url = input.value.trim();
+    if (!url) return alert("فين الرابط يا لوسيفر؟");
 
-// 3. منطق زرار التحميل الأساسي
-mainBtn.addEventListener('click', async () => {
-    const url = urlInput.value.trim();
-    if(!url) return alert('يا جيفري.. حط الرابط الأول! 😂');
-
-    loader.classList.remove('hidden');
-    resultBox.classList.add('hidden');
+    status.classList.remove('hidden');
+    results.classList.add('hidden');
 
     try {
         const res = await fetch('/api/download', {
@@ -45,34 +29,20 @@ mainBtn.addEventListener('click', async () => {
         });
 
         const data = await res.json();
-        
-        if (data.links && data.links.length > 0) {
-            displayResults(data);
+        if (data.links) {
+            document.getElementById('resImg').src = data.thumbnail;
+            document.getElementById('resTitle').innerText = data.title;
+            const grid = document.getElementById('linksGrid');
+            grid.innerHTML = data.links.map(l => 
+                `<a href="${l.url}" class="dl-btn" target="_blank"><i class="fas fa-download"></i> ${l.quality}</a>`
+            ).join('');
+            results.classList.remove('hidden');
         } else {
-            alert('السيرفر مش عارف يوصل للفيديو ده، اتأكد إنه عام (Public)');
+            alert("خطأ: " + (data.error || "مقدرناش نسحب الرابط ده"));
         }
     } catch (e) {
-        alert('فيه مشكلة في السيرفر.. جرب كمان شوية');
+        alert("السيرفر واقع أو فيه مشكلة في الشبكة");
     } finally {
-        loader.classList.add('hidden');
+        status.classList.add('hidden');
     }
 });
-
-function displayResults(data) {
-    document.getElementById('resTitle').innerText = data.title;
-    document.getElementById('resThumb').src = data.thumbnail;
-    
-    const linksGrid = document.getElementById('downloadLinks');
-    linksGrid.innerHTML = ''; 
-
-    data.links.forEach(link => {
-        const btn = document.createElement('a');
-        btn.className = 'dl-button';
-        btn.href = link.url;
-        btn.target = '_blank';
-        btn.innerHTML = `<i class="fas fa-download"></i> تحميل ${link.quality || 'بجودة عالية'}`;
-        linksGrid.appendChild(btn);
-    });
-
-    resultBox.classList.remove('hidden');
-}
