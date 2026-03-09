@@ -1,61 +1,52 @@
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+    if (req.method !== 'POST') return res.status(405).json({ error: 'غير مسموح بهذا النوع من الطلبات' });
     
     const { url } = req.body;
-    
+    if (!url) return res.status(400).json({ error: 'فين الرابط يا لوسيفر؟' });
+
+    // بنسحب المفتاح من خزنة فيرسيل بأمان
+    const API_KEY = process.env.RAPIDAPI_KEY; 
+    const API_HOST = 'social-download-all-in-one.p.rapidapi.com';
+
+    if (!API_KEY) {
+        return res.status(500).json({ error: "خطأ: لم يتم إعداد مفتاح API في الخادم." });
+    }
+
+    // إعدادات الطلب زي ما هي موجودة في الصورة بتاعتك بالظبط
+    const options = {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json',
+            'x-rapidapi-host': API_HOST,
+            'x-rapidapi-key': API_KEY
+        },
+        body: JSON.stringify({ url: url })
+    };
+
     try {
-        // 1. معالجة روابط تيك توك (باستخدام محرك TikWM المستقر)
-        if (url.includes('tiktok.com')) {
-            const apiRes = await fetch('https://www.tikwm.com/api/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ url: url, hd: '1' })
-            });
-            const data = await apiRes.json();
+        const apiRes = await fetch('https://social-download-all-in-one.p.rapidapi.com/v1/social/autolink', options);
+        const data = await apiRes.json();
 
-            if (data.code === 0) {
-                return res.status(200).json({
-                    title: data.data.title,
-                    thumbnail: data.data.cover,
-                    links: [
-                        { quality: "فيديو HD (بدون علامة)", url: data.data.play },
-                        { quality: "صوت فقط (MP3)", url: data.data.music }
-                    ]
-                });
-            }
-            return res.status(400).json({ error: "الفيديو خاص أو محذوف" });
-        } 
-        
-        // 2. معالجة باقي المنصات (يوتيوب، انستا، فيس بوك) باستخدام محرك Cobalt الجبار
-        else {
-            const apiRes = await fetch('https://api.cobalt.tools/api/json', {
-                method: 'POST',
-                headers: { 
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ url: url })
-            });
-
-            const data = await apiRes.json();
-
-            // Cobalt بيرجع الرابط المباشر في المتغير data.url
-            if (data && data.url) {
-                return res.status(200).json({
-                    title: "تم الاستخراج بواسطة لوسيفر 😈",
-                    thumbnail: "https://placehold.co/600x400/151515/ff003c?text=Lucifer+Tools",
-                    links: [
-                        { quality: "تحميل الفيديو", url: data.url }
-                    ]
-                });
-            }
+        // الـ API ده عادة بيرجع البيانات جوه مصفوفة اسمها medias
+        if (data && (data.medias || data.links || data.url)) {
+            // بنوحد شكل الرد عشان الواجهة تفهمه بسهولة
+            const medias = data.medias || data.links || [{ url: data.url, quality: 'عالية' }];
             
-            return res.status(400).json({ error: "مش قادرين نسحب الفيديو ده، ممكن يكون Private أو محمي" });
+            return res.status(200).json({
+                title: data.title || "تم الاستخراج بواسطة لوسيفر 😈",
+                thumbnail: data.thumbnail || data.cover || "https://placehold.co/600x400/151515/ff003c?text=Lucifer+Tools",
+                links: medias.map(media => ({
+                    quality: media.quality || media.type || 'تحميل',
+                    url: media.url || media.link,
+                    extension: media.extension || 'mp4'
+                }))
+            });
         }
+        
+        return res.status(400).json({ error: "عذراً، الرابط محمي أو غير مدعوم." });
 
     } catch (error) {
-        // السطر ده هيخليك تشوف الخطأ بالتفصيل في لوحة تحكم فيرسيل
-        console.error("Lucifer Server Error:", error);
-        res.status(500).json({ error: "الخوادم الوسيطة ترفض الاتصال حالياً.. جرب مرة أخرى." });
+        console.error("Server Error:", error);
+        res.status(500).json({ error: "الخوادم ترفض الاتصال حالياً." });
     }
 }
