@@ -1,51 +1,74 @@
+import { aio } from 'btch-downloader';
+
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+    if (req.method !== 'POST') return res.status(405).json({ error: 'غير مسموح بهذا الطلب' });
     
     const { url } = req.body;
-    const API_KEY = process.env.RAPIDAPI_KEY;
-
-    // فحص: هل فيرسيل شايف المفتاح أصلاً؟
-    if (!API_KEY) {
-        return res.status(400).json({ error: "السيرفر مش لاقي الـ API_KEY! اتأكد إنك حطيته في Vercel وعملت Redeploy." });
-    }
+    if (!url) return res.status(400).json({ error: 'فين الرابط يا لوسيفر؟' });
 
     try {
-        const apiRes = await fetch('https://social-download-all-in-one.p.rapidapi.com/v1/social/autolink', {
-            method: 'POST',
-            headers: {
-                'content-type': 'application/json',
-                'x-rapidapi-host': 'social-download-all-in-one.p.rapidapi.com',
-                'x-rapidapi-key': API_KEY
-            },
-            body: JSON.stringify({ url: url })
-        });
+        // نستخدم المكتبة المجانية لتحليل وسحب الفيديو من أي منصة
+        const result = await aio(url);
 
-        const data = await apiRes.json();
+        let title = "تم الاستخراج بواسطة لوسيفر 😈";
+        let thumbnail = "https://placehold.co/600x400/151515/ff003c?text=Lucifer+Tools";
+        let links = [];
 
-        // حالة 1: الـ API شغال بس رفض الطلب (ممكن الرصيد خلص أو الرابط غلط)
-        if (!apiRes.ok) {
-            return res.status(400).json({ error: `الـ API رفض الطلب وقال: ${JSON.stringify(data)}` });
+        // تنسيق البيانات اللي راجعة من المكتبة عشان الواجهة تفهمها
+        if (typeof result === 'object' && result !== null) {
+            title = result.title || title;
+            thumbnail = result.thumbnail || result.cover || thumbnail;
+            
+            if (result.url) {
+                links.push({ quality: 'عالية (تحميل مباشر)', url: result.url, extension: 'mp4' });
+            } else if (result.medias && Array.isArray(result.medias)) {
+                links = result.medias.map(m => ({
+                    quality: m.quality || 'عالية',
+                    url: m.url || m.link,
+                    extension: m.extension || 'mp4'
+                }));
+            } else if (Array.isArray(result)) {
+                links = result.map((item, i) => ({
+                    quality: item.quality || `رابط ${i+1}`,
+                    url: typeof item === 'string' ? item : (item.url || item.link),
+                    extension: 'mp4'
+                })).filter(l => l.url);
+            }
+        } else if (typeof result === 'string') {
+            links.push({ quality: 'عالية', url: result, extension: 'mp4' });
         }
 
-        // حالة 2: الـ API نجح بس مفيش روابط رجعت
-        if (!data.medias && !data.links && !data.url) {
-            return res.status(400).json({ error: `البيانات رجعت فاضية من الـ API: ${JSON.stringify(data)}` });
+        if (links.length > 0) {
+             return res.status(200).json({ title, thumbnail, links });
+        } else {
+             return res.status(400).json({ error: "الفيديو ده إما برايفت أو المنصة غير مدعومة حالياً." });
         }
-
-        // حالة 3: نجاح! ننسق البيانات
-        const medias = data.medias || data.links || [{ url: data.url, quality: 'عالية' }];
-        return res.status(200).json({
-            title: data.title || "تم الاستخراج 😈",
-            thumbnail: data.thumbnail || data.cover || "https://placehold.co/600",
-            links: medias.map(m => ({
-                quality: m.quality || m.type || 'تحميل',
-                url: m.url || m.link,
-                extension: m.extension || 'mp4'
-            }))
-        });
 
     } catch (error) {
-        // لو السيرفر نفسه وقع
-        return res.status(500).json({ error: `مشكلة في كود السيرفر نفسه: ${error.message}` });
+        console.error("Lucifer Server Error:", error);
+        
+        // 🚀 خطة طوارئ: لو المكتبة فشلت في تيك توك، هنستخدم الـ API المفتوح الخاص بيه فوراً
+        if (url.includes('tiktok.com')) {
+            try {
+                const apiRes = await fetch('https://www.tikwm.com/api/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ url: url, hd: '1' })
+                });
+                const data = await apiRes.json();
+                if (data.code === 0) {
+                    return res.status(200).json({
+                        title: data.data.title || "تيك توك لوسيفر 😈",
+                        thumbnail: data.data.cover,
+                        links: [
+                            { quality: "فيديو HD (بدون علامة)", url: data.data.play, extension: "mp4" },
+                            { quality: "صوت فقط", url: data.data.music, extension: "mp3" }
+                        ]
+                    });
+                }
+            } catch (e) { /* تجاهل أخطاء الطوارئ */ }
+        }
+        
+        res.status(500).json({ error: "السيرفر واجه مشكلة في تحليل الرابط ده." });
     }
 }
